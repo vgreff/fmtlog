@@ -9,12 +9,11 @@ struct Foo { int a; float b; };
 template <>
 struct fmt::formatter<Foo> : formatter<std::string>
 {
-  // constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
   template <typename Context>
   auto format(const Foo &foo, Context &ctx) const
   {
     std::stringstream my_ss;
-    my_ss << "a=" << foo.a << " b=" <<  foo.b << std::endl;
+    my_ss << "a=" << foo.a << " b=" <<  foo.b << std::ends;
     
     // std::string res = my_ss.str();
     // return formatter<std::string_view>::format(res, ctx);
@@ -64,15 +63,12 @@ struct fmt::formatter<MovableType> : formatter<int>
   template <typename FormatContext>
   auto format(const MovableType &val, FormatContext &ctx)
   {
-    auto v =formatter<int>::format(val.val[0].v, ctx);
-    // std::cerr << "VG here"
-    // << std::endl;
-    
-    return v;
+    return formatter<int>::format(val.val[0].v, ctx);
   }
 };
 
 void runBenchmark();
+void runBenchmark1();
 
 void logcb(int64_t ns, fmtlog::LogLevel level, fmt::string_view location, size_t basePos, fmt::string_view threadName,
            fmt::string_view msg, size_t bodyPos, size_t logFilePos)
@@ -150,6 +146,10 @@ int main()
   logw("This msg will be called back");
 
   fmtlog::setLogFile("/tmp/wow", false);
+  logw("VG1_W custom types: {} end", Foo(120, 234.56));
+  fmtlog::poll();
+
+
   for (int i = 0; i < 10; i++)
   {
     logw("test logfilepos: {}.", i);
@@ -164,6 +164,7 @@ int main()
 
   fmtlog::poll();
   runBenchmark();
+  runBenchmark1();
 
   return 0;
 }
@@ -186,4 +187,25 @@ void runBenchmark()
 
   double span = std::chrono::duration_cast<std::chrono::duration<double>>(t1 - t0).count();
   fmt::print("benchmark, front latency: {:.1f} ns/msg average\n", (span / RECORDS) * 1e9);
+}
+
+void runBenchmark1()
+{
+  const int RECORDS = 10000;
+  fmtlog::setLogFile("/tmp/vg1", true);
+
+  std::chrono::high_resolution_clock::time_point t0, t1;
+
+  t0 = std::chrono::high_resolution_clock::now();
+  for (int i = 0; i < RECORDS; ++i)
+  {
+    logi("Foo={}", Foo(i, i + 0.234));
+  }
+  t1 = std::chrono::high_resolution_clock::now();
+
+  double span = std::chrono::duration_cast<std::chrono::duration<double>>(t1 - t0).count();
+  fmtlog::poll();
+  fmtlog::closeLogFile();
+
+  fmt::print("benchmark, front latency Foo: {:.1f} ns/msg average\n", (span / RECORDS) * 1e9);
 }
