@@ -8,23 +8,25 @@ using namespace fmt::literals;
 struct MyType
 {
   MyType(int val)
-    : v(val) {}
-  ~MyType() {
+      : v(val) {}
+  ~MyType()
+  {
     dtor_cnt++;
     // fmt::print("dtor_cnt: {}\n", dtor_cnt);
   }
-  int v;
+  int v{0};
   static int dtor_cnt;
 };
 
 int MyType::dtor_cnt = 0;
 
-template<>
+template <>
 struct fmt::formatter<MyType> : formatter<int>
 {
   // parse is inherited from formatter<string_view>.
-  template<typename FormatContext>
-  auto format(const MyType& val, FormatContext& ctx) const {
+  template <typename FormatContext>
+  auto format(const MyType &val, FormatContext &ctx) const
+  {
     return formatter<int>::format(val.v, ctx);
   }
 };
@@ -33,23 +35,27 @@ struct MovableType
 {
 public:
   MovableType(int v = 0)
-    : val{MyType(v)} {}
+      : val{MyType(v)} {}
+      // : val{MyType(v),MyType(v*2),MyType(v*4)} {}
 
   std::vector<MyType> val;
 };
 
-template<>
+template <>
 struct fmt::formatter<MovableType> : formatter<int>
 {
   // parse is inherited from formatter<string_view>.
-  template<typename FormatContext>
-  auto format(const MovableType& val, FormatContext& ctx) {
-    return formatter<int>::format(val.val[0].v, ctx);
+  template <typename FormatContext>
+  auto format(const MovableType &val, FormatContext &ctx)
+  {
+    auto v =formatter<int>::format(val.val[0].v, ctx);
+    return v;
   }
 };
 
-template<typename S, typename... Args>
-void test(const S& format, Args&&... args) {
+template <typename S, typename... Args>
+void test(const S &format, Args &&...args)
+{
   fmt::detail::check_format_string<Args...>(format);
   auto sv = fmt::string_view(format);
   size_t formatted_size = fmt::formatted_size(fmt::runtime(sv), std::forward<Args>(args)...);
@@ -61,7 +67,7 @@ void test(const S& format, Args&&... args) {
   size_t cstringSizes[1000];
   char buf[1024];
   int allocSize = fmtlog::getArgSizes<0>(cstringSizes, args...);
-  const char* ret = fmtlog::encodeArgs<0>(cstringSizes, buf, std::forward<Args>(args)...);
+  const char *ret = fmtlog::encodeArgs<0>(cstringSizes, buf, std::forward<Args>(args)...);
   // fmt::print("=========\n");
   assert(ret - buf == allocSize);
   fmtlog::MemoryBuffer buffer;
@@ -77,15 +83,16 @@ void test(const S& format, Args&&... args) {
   assert(res == ans);
 }
 
-int main() {
+int main()
+{
   char cstring[100] = "cstring cstring";
-  const char* p = "haha";
-  const char* pcstring = cstring;
+  const char *p = "haha";
+  const char *pcstring = cstring;
   string str("str");
   char ch = 'f';
-  char& ch2 = ch;
+  char &ch2 = ch;
   int i = 5;
-  int& ri = i;
+  int &ri = i;
   double d = 3.45;
   float f = 55.2;
   uint16_t short_int = 2222;
@@ -126,4 +133,3 @@ int main() {
 
   return 0;
 }
-
