@@ -7,7 +7,7 @@
 struct Foo { int a; float b; };
 
 template <>
-struct fmt::formatter<Foo> : formatter<std::string_view>
+struct fmt::formatter<Foo> : formatter<std::string>
 {
   // constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
   template <typename Context>
@@ -18,7 +18,7 @@ struct fmt::formatter<Foo> : formatter<std::string_view>
     
     // std::string res = my_ss.str();
     // return formatter<std::string_view>::format(res, ctx);
-    return formatter<std::string_view>::format(my_ss.str(), ctx);
+    return formatter<std::string>::format(my_ss.str(), ctx);
   }
 };
 struct MyType
