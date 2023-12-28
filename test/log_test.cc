@@ -1,7 +1,76 @@
 #include <chrono>
 #include <iostream>
+#include <sstream>
 
 #include "../fmtlog.h"
+
+struct Foo { int a; float b; };
+
+template <>
+struct fmt::formatter<Foo> : formatter<std::string_view>
+{
+  // constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
+  template <typename Context>
+  auto format(const Foo &foo, Context &ctx) const
+  {
+    std::stringstream my_ss;
+    my_ss << "a=" << foo.a << " b=" <<  foo.b << std::endl;
+    
+    // std::string res = my_ss.str();
+    // return formatter<std::string_view>::format(res, ctx);
+    return formatter<std::string_view>::format(my_ss.str(), ctx);
+  }
+};
+struct MyType
+{
+  MyType(int val)
+      : v(val) {}
+  ~MyType()
+  {
+    dtor_cnt++;
+    // fmt::print("dtor_cnt: {}\n", dtor_cnt);
+  }
+  int v{0};
+  static int dtor_cnt;
+};
+
+int MyType::dtor_cnt = 0;
+
+template <>
+struct fmt::formatter<MyType> : formatter<int>
+{
+  // parse is inherited from formatter<string_view>.
+  template <typename FormatContext>
+  auto format(const MyType &val, FormatContext &ctx) const
+  {
+    return formatter<int>::format(val.v, ctx);
+  }
+};
+
+struct MovableType
+{
+public:
+  MovableType(int v = 0)
+      : val{MyType(v)} {}
+      // : val{MyType(v),MyType(v*2),MyType(v*4)} {}
+
+  std::vector<MyType> val;
+};
+
+template <>
+struct fmt::formatter<MovableType> : formatter<int>
+{
+  // parse is inherited from formatter<string_view>.
+  template <typename FormatContext>
+  auto format(const MovableType &val, FormatContext &ctx)
+  {
+    auto v =formatter<int>::format(val.val[0].v, ctx);
+    // std::cerr << "VG here"
+    // << std::endl;
+    
+    return v;
+  }
+};
 
 void runBenchmark();
 
@@ -62,6 +131,13 @@ int main()
   logi("Header pattern is changed, full date time info is shown");
 
   fmtlog::poll();
+
+  logi("VG custom types: {} end", Foo(10, 34.56));
+  fmtlog::poll();
+
+  logi("test custom types: {}, {}, {}", MyType(1), MyType(2), MovableType(3));
+  fmtlog::poll();
+
 
   for (int i = 0; i < 10; i++)
   {
