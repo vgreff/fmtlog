@@ -42,6 +42,13 @@ target_link_libraries(log_test fmtlog-static fmt)
 #target_compile_definitions(log_test PUBLIC FMTLOG_HEADER_ONLY)
 install(TARGETS log_test)
 
+add_executable(test_has_member test_has_member.cpp)
+
+add_executable(meta meta.cpp)
+target_link_libraries(meta fmtlog-static fmt)
+#target_compile_definitions(log_test PUBLIC FMTLOG_HEADER_ONLY)
+install(TARGETS meta)
+
 add_executable(enc_dec_test enc_dec_test.cc)
 target_link_libraries(enc_dec_test fmtlog-static fmt)
 install(TARGETS enc_dec_test)
