@@ -1,6 +1,7 @@
 #include <chrono>
 #include <iostream>
 #include <sstream>
+#include <array>
 
 #include "../fmtlog.h"
 
@@ -13,6 +14,71 @@ struct fmt::formatter<Foo> : formatter<std::string>
   auto format(const Foo &foo, Context &ctx) const
   {
     std::stringstream my_ss;
+    my_ss << "a=" << foo.a << " b=" <<  foo.b << std::ends;
+    
+    // std::string res = my_ss.str();
+    // return formatter<std::string_view>::format(res, ctx);
+    return formatter<std::string>::format(my_ss.str(), ctx);
+  }
+};
+
+
+template <int Size>
+class VgFixedBuffer
+{
+public:
+  static constexpr const int MaxSize = Size;
+public:
+  VgFixedBuffer();
+
+  const char* data() const { return buffer_.data(); }
+  size_t size() const { return size_;}
+
+  void load(char* data, size_t sz, size_t offset=0)
+  {
+    if (offset == 0) size_=0;
+    memcpy(buffer_.data() + offset, data, sz);
+    size_+=sz;
+  }
+
+  template <typename T1>
+  void load(const T1& in, size_t offset=0)
+  {
+    load((char*)(&in), sizeof(T1), offset);
+  }
+
+  friend std::ostream& operator<< <>(std::ostream& out, const VgFixedBuffer<Size>& obj);
+private:
+  size_t size_{0};
+  std::array<char, Size> buffer_;
+};
+
+template <int Size>
+VgFixedBuffer<Size>::VgFixedBuffer()
+{
+}
+
+template <int Size>
+std::ostream& operator<<(std::ostream& out, const VgFixedBuffer<Size>& obj)
+{
+     out << "VgFixedBuffer<Size>:{ ";
+
+     out << "}";
+     return out;
+}
+
+using VgBuffer1024 = VgFixedBuffer<1024>;
+
+template <>
+struct fmt::formatter<VgBuffer1024> : formatter<std::string>
+{
+  template <typename Context>
+  auto format(const VgBuffer1024&buf, Context &ctx) const
+  {
+    std::stringstream my_ss;
+    // char* ptr = (char*) buf.data();
+    Foo* ptrf = (Foo*) buf.data();
+    Foo& foo{*ptrf};
     my_ss << "a=" << foo.a << " b=" <<  foo.b << std::ends;
     
     // std::string res = my_ss.str();
@@ -129,6 +195,12 @@ int main()
   fmtlog::poll();
 
   logi("VG custom types: {} end", Foo(10, 34.56));
+  fmtlog::poll();
+
+  VgBuffer1024 vgb;
+  vgb.load(Foo(120, 324.56));
+
+  logi("VG2 custom types: {} end", vgb);
   fmtlog::poll();
 
   logi("test custom types: {}, {}, {}", MyType(1), MyType(2), MovableType(3));
