@@ -7,7 +7,7 @@
 #include <iostream> // cout, endl
 #include <iomanip>  // std::boolalpha
 
-#include "has_member.hpp"
+#include "../has_member.hpp"
 
 struct A  // has a "sayHi" member
 {

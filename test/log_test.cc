@@ -16,23 +16,31 @@ struct fmt::formatter<Foo> : formatter<std::string>
     std::stringstream my_ss;
     my_ss << "a=" << foo.a << " b=" <<  foo.b << std::ends;
     
-    // std::string res = my_ss.str();
-    // return formatter<std::string_view>::format(res, ctx);
     return formatter<std::string>::format(my_ss.str(), ctx);
   }
 };
 
+//-----------------------------------------------------------------------------------
 
 template <int Size>
 class VgFixedBuffer
 {
 public:
   static constexpr const int MaxSize = Size;
+  static constexpr const size_t SzSize = sizeof(size_t);
 public:
   VgFixedBuffer();
 
-  const char* data() const { return buffer_.data(); }
-  size_t size() const { return size_;}
+  const char* data() const { return (char*)this; }
+  size_t size() const { return size_ + SzSize;}
+
+  template <typename T1>
+  const T1* payloadDataAs() const { return (const T1*)(((char*)this) + SzSize); }
+  
+  const char* payloadData() const { return (((char*)this) + SzSize); }
+
+
+  size_t payloadSize() const { return (size_ > SzSize) ?  size_ - SzSize : 0;}
 
   void load(char* data, size_t sz, size_t offset=0)
   {
@@ -47,11 +55,17 @@ public:
     load((char*)(&in), sizeof(T1), offset);
   }
 
+  // bool useDataSize() const { return true;}
+  bool useDataSize() const { return useDataSize_;}
+
   friend std::ostream& operator<< <>(std::ostream& out, const VgFixedBuffer<Size>& obj);
 private:
   size_t size_{0};
   std::array<char, Size> buffer_;
+public:
+  bool useDataSize_{true};
 };
+
 
 template <int Size>
 VgFixedBuffer<Size>::VgFixedBuffer()
@@ -61,11 +75,15 @@ VgFixedBuffer<Size>::VgFixedBuffer()
 template <int Size>
 std::ostream& operator<<(std::ostream& out, const VgFixedBuffer<Size>& obj)
 {
-     out << "VgFixedBuffer<Size>:{ ";
+  out << "VgFixedBuffer<" << Size << ">:{ "
+      << "size=" << obj.size_ << " "
+      << "data.size=" << (uint64_t)obj.size() << " "
+      << "data=" << (uint64_t)obj.data() << " ";
 
-     out << "}";
-     return out;
+  out << "}\n";
+  return out;
 }
+//-----------------------------------------------------------------------------------
 
 using VgBuffer1024 = VgFixedBuffer<1024>;
 
@@ -73,19 +91,19 @@ template <>
 struct fmt::formatter<VgBuffer1024> : formatter<std::string>
 {
   template <typename Context>
-  auto format(const VgBuffer1024&buf, Context &ctx) const
+  auto format(const VgBuffer1024& buf, Context &ctx) const
   {
     std::stringstream my_ss;
-    // char* ptr = (char*) buf.data();
-    Foo* ptrf = (Foo*) buf.data();
-    Foo& foo{*ptrf};
-    my_ss << "a=" << foo.a << " b=" <<  foo.b << std::ends;
+    // Foo* ptrf = (Foo*) buf.payloadData();
+    auto foo = buf.payloadDataAs<Foo>();
+    my_ss << "a=" << foo->a << " b=" <<  foo->b << std::ends;
     
-    // std::string res = my_ss.str();
-    // return formatter<std::string_view>::format(res, ctx);
     return formatter<std::string>::format(my_ss.str(), ctx);
   }
 };
+
+//-----------------------------------------------------------------------------------
+
 struct MyType
 {
   MyType(int val)
@@ -198,9 +216,16 @@ int main()
   fmtlog::poll();
 
   VgBuffer1024 vgb;
-  vgb.load(Foo(120, 324.56));
+  vgb.load(Foo(520, 524.56));
+
+// std::cout << "vgb=" << vgb << std::endl;
+// std::cout << "VG2 useDataSize=" << has_member(VgBuffer1024, useDataSize) << std::endl;
 
   logi("VG2 custom types: {} end", vgb);
+  fmtlog::poll();
+
+  vgb.useDataSize_=false;
+  logi("VG3 custom types: {} end", vgb);
   fmtlog::poll();
 
   logi("test custom types: {}, {}, {}", MyType(1), MyType(2), MovableType(3));
@@ -227,16 +252,16 @@ int main()
     logw("test logfilepos: {}.", i);
   }
 
-  fmtlog::setLogQFullCB(logQFullCB, nullptr);
-  for (int i = 0; i < 1024; i++)
-  {
-    std::string str(1000, ' ');
-    logi("log q full cb test: {}", str);
-  }
+  // fmtlog::setLogQFullCB(logQFullCB, nullptr);
+  // for (int i = 0; i < 1024; i++)
+  // {
+  //   std::string str(1000, ' ');
+  //   logi("log q full cb test: {}", str);
+  // }
 
   fmtlog::poll();
-  runBenchmark();
-  runBenchmark1();
+  // runBenchmark();
+  // runBenchmark1();
 
   return 0;
 }

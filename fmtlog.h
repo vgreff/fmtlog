@@ -30,6 +30,13 @@ SOFTWARE.
 #include <atomic>
 #include <thread>
 #include <memory>
+#include "has_member.hpp"
+// #include <iostream>
+
+//-----------------------------------------------------------------------------------
+define_has_member(useDataSize);
+
+//-----------------------------------------------------------------------------------
 
 #ifdef _MSC_VER
 #include <intrin.h>
@@ -485,7 +492,24 @@ public:
       // placement new even if the *out* is misaligned, which would cause segfault. So we use memcpy
       // when possible
       if constexpr (std::is_trivially_copyable_v<fmt::remove_cvref_t<Arg>>) {
-        memcpy(out, &arg, sizeof(Arg));
+        // std::cout << "VG2e useDataSize=" << has_member(fmt::remove_cvref_t<Arg>, useDataSize) << std::endl;
+        if constexpr (has_member(fmt::remove_cvref_t<Arg>, useDataSize)) 
+        {
+          if (arg.useDataSize())
+          {
+            // std::cout << "VG2e special=" << arg.useDataSize() << std::endl;
+            memcpy(out, arg.data(), arg.size());
+          }
+          else
+          {
+            // std::cout << "VG2e standard=" << arg.useDataSize() << std::endl;
+            memcpy(out, &arg, sizeof(Arg));
+          }
+        }
+        else
+        {
+          memcpy(out, &arg, sizeof(Arg));
+        }
       }
       else {
         new (out) fmt::remove_cvref_t<Arg>(std::forward<Arg>(arg));
