@@ -252,16 +252,16 @@ int main()
     logw("test logfilepos: {}.", i);
   }
 
-  // fmtlog::setLogQFullCB(logQFullCB, nullptr);
-  // for (int i = 0; i < 1024; i++)
-  // {
-  //   std::string str(1000, ' ');
-  //   logi("log q full cb test: {}", str);
-  // }
+  fmtlog::setLogQFullCB(logQFullCB, nullptr);
+  for (int i = 0; i < 1024; i++)
+  {
+    std::string str(1000, ' ');
+    logi("log q full cb test: {}", str);
+  }
 
   fmtlog::poll();
-  // runBenchmark();
-  // runBenchmark1();
+  runBenchmark();
+  runBenchmark1();
 
   return 0;
 }
