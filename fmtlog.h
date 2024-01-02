@@ -461,7 +461,22 @@ public:
       return len + getArgSizes<CstringIdx>(cstringSize, args...);
     }
     else {
-      return sizeof(Arg) + getArgSizes<CstringIdx>(cstringSize, args...);
+      if constexpr (!has_member(fmt::remove_cvref_t<Arg>, useDataSize)) 
+      {
+        return sizeof(Arg) + getArgSizes<CstringIdx>(cstringSize, args...);
+      }
+      else
+      {
+        if (arg.useDataSize())
+        {
+          return size_t(arg.size()) + getArgSizes<CstringIdx>(cstringSize, args...);
+        }
+        else
+        {
+          return sizeof(Arg) + getArgSizes<CstringIdx>(cstringSize, args...);
+        }
+      }
+      // return sizeof(Arg) + getArgSizes<CstringIdx>(cstringSize, args...);
     }
   }
 
