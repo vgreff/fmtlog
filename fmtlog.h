@@ -493,7 +493,11 @@ public:
       // when possible
       if constexpr (std::is_trivially_copyable_v<fmt::remove_cvref_t<Arg>>) {
         // std::cout << "VG2e useDataSize=" << has_member(fmt::remove_cvref_t<Arg>, useDataSize) << std::endl;
-        if constexpr (has_member(fmt::remove_cvref_t<Arg>, useDataSize)) 
+        if constexpr (!has_member(fmt::remove_cvref_t<Arg>, useDataSize)) 
+        {
+          memcpy(out, &arg, sizeof(Arg));
+        }
+        else
         {
           if (arg.useDataSize())
           {
@@ -505,10 +509,6 @@ public:
             // std::cout << "VG2e standard=" << arg.useDataSize() << std::endl;
             memcpy(out, &arg, sizeof(Arg));
           }
-        }
-        else
-        {
-          memcpy(out, &arg, sizeof(Arg));
         }
       }
       else {
